@@ -9,6 +9,7 @@ function toNumber(value) {
 
 export default function AdminMenu() {
   const [items, setItems] = useState([]);
+  const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -22,12 +23,18 @@ export default function AdminMenu() {
     allergens: "",
   });
 
+  const [recipeRows, setRecipeRows] = useState([{ ingredientId: "", quantity: "" }]);
+
   const load = async () => {
     setError("");
     setLoading(true);
     try {
-      const res = await api.get("/api/menu/all");
-      setItems(res.data?.items || []);
+      const [menuRes, ingRes] = await Promise.all([
+        api.get("/api/menu/all"),
+        api.get("/api/inventory/kitchen")
+      ]);
+      setItems(menuRes.data?.items || []);
+      setIngredients(ingRes.data?.ingredients || []);
     } catch (e) {
       setError(e?.response?.data?.message || e.message || "Failed to load menu");
     } finally {
@@ -45,6 +52,18 @@ export default function AdminMenu() {
     e.preventDefault();
     setError("");
     try {
+      const recipe = recipeRows
+        .map((r) => ({ ingredient: r.ingredientId, quantity: Number(r.quantity) }))
+        .filter((r) => r.ingredient && Number.isFinite(r.quantity) && r.quantity > 0);
+
+      const uniq = new Set();
+      for (const r of recipe) {
+        if (uniq.has(r.ingredient)) {
+          throw new Error("Recipe has duplicate ingredients. Please merge quantities.");
+        }
+        uniq.add(r.ingredient);
+      }
+
       const payload = {
         name: form.name.trim(),
         category: form.category.trim(),
@@ -59,10 +78,12 @@ export default function AdminMenu() {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
+        recipe,
       };
 
       await api.post("/api/menu", payload);
       setForm({ name: "", category: "", description: "", price: "", imageUrl: "", dietaryTags: "", allergens: "" });
+      setRecipeRows([{ ingredientId: "", quantity: "" }]);
       await load();
     } catch (e) {
       setError(e?.response?.data?.message || e.message || "Failed to create item");
@@ -129,6 +150,71 @@ export default function AdminMenu() {
             <div className="text-gray-600 mb-1">Allergens (comma-separated)</div>
             <input className="border rounded w-full p-2" value={form.allergens} onChange={(e) => setForm((f) => ({ ...f, allergens: e.target.value }))} placeholder="e.g. nuts, dairy" />
           </label>
+
+          <div className="md:col-span-2">
+            <div className="text-sm text-gray-600 mb-1">Recipe (ingredients used per 1 item)</div>
+            <div className="grid gap-2">
+              {recipeRows.map((row, idx) => (
+                <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_160px_120px] gap-2">
+                  <select
+                    className="border rounded w-full p-2 text-sm"
+                    value={row.ingredientId}
+                    onChange={(e) =>
+                      setRecipeRows((rows) =>
+                        rows.map((r, i) => (i === idx ? { ...r, ingredientId: e.target.value } : r))
+                      )
+                    }
+                  >
+                    <option value="">Select ingredient…</option>
+                    {ingredients.map((ing) => (
+                      <option key={ing._id} value={ing._id}>
+                        {ing.name} ({ing.unit}) — stock {ing.stock}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="border rounded w-full p-2 text-sm"
+                    value={row.quantity}
+                    onChange={(e) =>
+                      setRecipeRows((rows) =>
+                        rows.map((r, i) => (i === idx ? { ...r, quantity: e.target.value } : r))
+                      )
+                    }
+                    placeholder="Qty"
+                  />
+
+                  <button
+                    type="button"
+                    className="px-3 py-2 border rounded text-sm"
+                    onClick={() => setRecipeRows((rows) => rows.filter((_, i) => i !== idx))}
+                    disabled={recipeRows.length === 1}
+                    title={recipeRows.length === 1 ? "At least one row" : "Remove"}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              <div>
+                <button
+                  type="button"
+                  className="px-3 py-2 border rounded text-sm"
+                  onClick={() => setRecipeRows((rows) => [...rows, { ingredientId: "", quantity: "" }])}
+                >
+                  + Add ingredient
+                </button>
+              </div>
+
+              <div className="text-xs text-gray-500">
+                Stock is automatically reduced when an order is moved to <b>preparing</b> (Admin → Orders).
+              </div>
+            </div>
+          </div>
+
           <div className="md:col-span-2">
             <button className="px-4 py-2 rounded bg-black text-white" type="submit">Create</button>
           </div>
