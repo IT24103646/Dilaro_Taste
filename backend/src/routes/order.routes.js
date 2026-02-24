@@ -115,6 +115,10 @@ router.post("/", async (req, res, next) => {
 
     await session.commitTransaction();
 
+    // Increment orderCount on each menu item (best-effort, outside transaction)
+    const itemIds = data.items.map(i => i.menuItemId);
+    MenuItem.updateMany({ _id: { $in: itemIds } }, { $inc: { orderCount: 1 } }).catch(() => {});
+
     // notify room
     emitEvent("kitchen", "order:new", order[0]);
 

@@ -39,6 +39,8 @@ export default function AdminLayout() {
           <SideLink to="/admin/rooms">Rooms</SideLink>
           <SideLink to="/admin/laundry">Laundry</SideLink>
           <SideLink to="/admin/users">Users</SideLink>
+          <SideLink to="/admin/contact">Contact</SideLink>
+          <SideLink to="/admin/hero">Hero Carousel</SideLink>
           <SideLink to="/admin/reports">Reports</SideLink>
         </nav>
       </aside>

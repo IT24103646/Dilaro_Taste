@@ -2,11 +2,16 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
 import { AuthProvider, useAuth } from "./lib/auth.jsx";
+import { CartProvider } from "./lib/cart.jsx";
 
 import Home from "./pages/Home.jsx";
+import About from "./pages/About.jsx";
+import Contact from "./pages/Contact.jsx";
 import Login from "./pages/Login.jsx";
 import Menu from "./pages/Menu.jsx";
+import MenuItemDetail from "./pages/MenuItemDetail.jsx";
 import Rooms from "./pages/Rooms.jsx";
+import RoomDetail from "./pages/RoomDetail.jsx";
 import Track from "./pages/Track.jsx";
 import Staff from "./pages/Staff.jsx";
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
@@ -19,7 +24,11 @@ import AdminLaundry from "./pages/admin/AdminLaundry.jsx";
 import AdminOrders from "./pages/admin/AdminOrders.jsx";
 import AdminReservations from "./pages/admin/AdminReservations.jsx";
 import AdminReports from "./pages/admin/AdminReports.jsx";
+import AdminContact from "./pages/admin/AdminContact.jsx";
+import AdminHero from "./pages/admin/AdminHero.jsx";
 import PaymentResult from "./pages/PaymentResult.jsx";
+import Register from "./pages/Register.jsx";
+import Footer from "./components/Footer.jsx";
 
 function Protected({ roles, children }) {
   const { user, loading } = useAuth();
@@ -39,13 +48,20 @@ function RedirectAdmin({ children }) {
 export default function App() {
   return (
     <AuthProvider>
-      <Nav />
-      <main className="max-w-6xl mx-auto p-4">
-        <Routes>
-          <Route path="/" element={<Home />} />
+      <CartProvider>
+      <div className="min-h-screen flex flex-col">
+        <Nav />
+        <main className="flex-1 max-w-6xl mx-auto p-4 w-full">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<RedirectAdmin><About /></RedirectAdmin>} />
+            <Route path="/contact" element={<RedirectAdmin><Contact /></RedirectAdmin>} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<RedirectAdmin><Register /></RedirectAdmin>} />
           <Route path="/menu" element={<RedirectAdmin><Menu /></RedirectAdmin>} />
+          <Route path="/menu/:id" element={<RedirectAdmin><MenuItemDetail /></RedirectAdmin>} />
           <Route path="/rooms" element={<RedirectAdmin><Rooms /></RedirectAdmin>} />
+          <Route path="/rooms/:id" element={<RedirectAdmin><RoomDetail /></RedirectAdmin>} />
           <Route path="/track" element={<RedirectAdmin><Track /></RedirectAdmin>} />
           <Route path="/payment/:result" element={<PaymentResult />} />
 
@@ -61,12 +77,17 @@ export default function App() {
             <Route path="laundry" element={<AdminLaundry />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="reservations" element={<AdminReservations />} />
+            <Route path="contact" element={<AdminContact />} />
+            <Route path="hero" element={<AdminHero />} />
             <Route path="reports" element={<AdminReports />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+      </CartProvider>
     </AuthProvider>
   );
 }

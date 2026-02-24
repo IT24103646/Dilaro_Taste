@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card } from "../components/Card.jsx";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth.jsx";
 
 export default function Login() {
@@ -23,24 +22,79 @@ export default function Login() {
     }
   }
 
-  return (
-    <Card>
-      <h1 className="text-lg font-semibold">Login</h1>
-      <form onSubmit={onSubmit} className="mt-3 grid gap-3 max-w-md">
-        <input className="border rounded px-3 py-2" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" />
-        <input className="border rounded px-3 py-2" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" type="password" />
-        {err ? <p className="text-sm text-red-600">{err}</p> : null}
-        <button className="px-3 py-2 rounded bg-slate-900 text-white">Login</button>
+  const [showHint, setShowHint] = useState(false);
 
-        <div className="text-xs text-slate-600">
-          Demo users after seeding:
-          <ul className="list-disc ml-5 mt-1">
-            <li>admin@demo.com / Admin@123</li>
-            <li>staff@demo.com / Staff@123</li>
-            <li>customer@demo.com / Customer@123</li>
-          </ul>
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="w-full max-w-sm">
+        {/* Brand mark */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-stone-900 text-white font-display font-extrabold text-xl mb-3">R</div>
+          <h1 className="font-display text-2xl font-semibold text-stone-900">Welcome back</h1>
+          <p className="text-stone-500 text-sm mt-1">Sign in to your account</p>
         </div>
-      </form>
-    </Card>
+
+        <div className="card-premium p-6">
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-stone-600 block mb-1">Email</label>
+              <input
+                className="input"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-stone-600 block mb-1">Password</label>
+              <input
+                className="input"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
+
+            {err && (
+              <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-3 py-2 text-xs">{err}</div>
+            )}
+
+            <button type="submit" className="btn-primary w-full py-2.5 rounded-xl">
+              Sign In
+            </button>
+          </form>
+
+          {/* Register link */}
+          <div className="mt-4 border-t border-stone-100 pt-4 text-center text-xs text-stone-500">
+            Don’t have an account?{" "}
+            <Link to="/register" className="text-brand-600 font-medium hover:underline">Sign up</Link>
+          </div>
+
+          {/* Demo credentials hint */}
+          <div className="mt-4 border-t border-stone-100 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowHint(h => !h)}
+              className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+            >
+              {showHint ? "▲ Hide" : "▼ Show"} demo credentials
+            </button>
+            {showHint && (
+              <div className="mt-2 bg-stone-50 rounded-xl p-3 text-xs text-stone-500 space-y-1">
+                <div>admin@demo.com / Admin@123</div>
+                <div>staff@demo.com / Staff@123</div>
+                <div>customer@demo.com / Customer@123</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

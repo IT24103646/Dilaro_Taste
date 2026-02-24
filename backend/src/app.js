@@ -16,6 +16,8 @@ import laundryRoutes from "./routes/laundry.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
+import heroRoutes from "./routes/hero.routes.js";
 
 export function createApp() {
   const app = express();
@@ -77,6 +79,8 @@ export function createApp() {
   app.use("/api/laundry", laundryRoutes);
   app.use("/api/payments", paymentRoutes);
   app.use("/api/reports", reportRoutes);
+  app.use("/api/contact", contactRoutes);
+  app.use("/api/hero", heroRoutes);
 
   // simple image url storage; optional
   app.use("/api/uploads", uploadRoutes);

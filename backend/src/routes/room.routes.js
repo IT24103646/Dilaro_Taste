@@ -16,6 +16,17 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+// Public single room
+router.get("/:id", async (req, res, next) => {
+  try {
+    const room = await Room.findById(req.params.id).lean();
+    if (!room) { res.status(404); throw new Error("Room not found"); }
+    res.json({ room });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // Admin create room
 router.post("/", protect, requireRole("admin"), async (req, res, next) => {
   try {
@@ -58,6 +69,46 @@ router.post("/:id/status", protect, requireRole("staff", "admin"), async (req, r
     await RoomStatusLog.create({ room: room._id, from, to, reason, byUser: req.user._id });
 
     res.json({ room });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Admin update room fields
+router.put("/:id", protect, requireRole("admin"), async (req, res, next) => {
+  try {
+    const schema = z.object({
+      code: z.string().min(1).optional(),
+      name: z.string().min(1).optional(),
+      description: z.string().optional(),
+      photos: z.array(z.string()).optional(),
+      capacity: z.number().min(1).optional(),
+      amenities: z.array(z.string()).optional(),
+      basePricePerHour: z.number().min(0).optional(),
+      status: z.enum(["Available", "Occupied", "Cleaning", "Maintenance", "Out-of-Service"]).optional()
+    });
+    const patch = schema.parse(req.body);
+
+    const room = await Room.findByIdAndUpdate(req.params.id, patch, { new: true });
+    if (!room) {
+      res.status(404);
+      throw new Error("Room not found");
+    }
+    res.json({ room });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Admin delete room
+router.delete("/:id", protect, requireRole("admin"), async (req, res, next) => {
+  try {
+    const room = await Room.findByIdAndDelete(req.params.id);
+    if (!room) {
+      res.status(404);
+      throw new Error("Room not found");
+    }
+    res.json({ ok: true });
   } catch (e) {
     next(e);
   }
