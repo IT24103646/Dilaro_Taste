@@ -84,12 +84,19 @@ export default function AdminHero() {
   }
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4">Hero Carousel</h2>
+    <div className="space-y-5 animate-fadeUp">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Hero Carousel</h1>
+          <p className="page-subtitle">Manage the homepage hero slideshow images and text</p>
+        </div>
+        <button onClick={load} className="btn-outline text-xs gap-1.5">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          Refresh
+        </button>
+      </div>
 
-      {err && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-2 mb-4">{err}</div>
-      )}
+      {err && <div className="alert-error text-sm">{err}</div>}
 
       {/* Upload form */}
       <form onSubmit={handleUpload} className="card-premium p-5 mb-6 space-y-3">

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/api.js";
-import { Card } from "../../components/Card.jsx";
 import { Modal, ConfirmDialog } from "../../components/Modal.jsx";
 import { getCloudinaryPublicIdFromUrl, uploadImageToCloudinary } from "../../lib/cloudinary.js";
 
@@ -22,6 +21,7 @@ export default function AdminMenu() {
     price: "",
     imageUrl: "",
     photos: [],
+    isVeg: false,
     dietaryTags: "",
     allergens: "",
   });
@@ -86,6 +86,7 @@ export default function AdminMenu() {
         price: toNumber(form.price),
         imageUrl: form.imageUrl.trim(),
         photos: form.photos || [],
+        isVeg: !!form.isVeg,
         dietaryTags: form.dietaryTags
           .split(",")
           .map((s) => s.trim())
@@ -98,7 +99,7 @@ export default function AdminMenu() {
       };
 
       await api.post("/api/menu", payload);
-      setForm({ name: "", category: "", description: "", price: "", imageUrl: "", photos: [], dietaryTags: "", allergens: "" });
+      setForm({ name: "", category: "", description: "", price: "", imageUrl: "", photos: [], isVeg: false, dietaryTags: "", allergens: "" });
       setRecipeRows([{ ingredientId: "", quantity: "" }]);
       await load();
     } catch (e) {
@@ -117,7 +118,8 @@ export default function AdminMenu() {
       photos: item.photos || [],
       dietaryTags: (item.dietaryTags || []).join(", "),
       allergens: (item.allergens || []).join(", "),
-      isActive: item.isActive !== false
+      isActive: item.isActive !== false,
+      isVeg: !!item.isVeg
     });
     const rows = (item.recipe || []).map((r) => ({ ingredientId: String(r.ingredient?._id || r.ingredient), quantity: String(r.quantity ?? "") }));
     setEditRecipeRows(rows.length ? rows : [{ ingredientId: "", quantity: "" }]);
@@ -149,6 +151,7 @@ export default function AdminMenu() {
         dietaryTags: editForm.dietaryTags.split(",").map((s) => s.trim()).filter(Boolean),
         allergens: editForm.allergens.split(",").map((s) => s.trim()).filter(Boolean),
         isActive: !!editForm.isActive,
+        isVeg: !!editForm.isVeg,
         recipe
       });
 
@@ -299,86 +302,92 @@ export default function AdminMenu() {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Menu</h1>
-        <p className="text-gray-600">Create and manage menu items</p>
+    <div className="space-y-5 animate-fadeUp">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Menu</h1>
+          <p className="page-subtitle">Create and manage menu items</p>
+        </div>
+        <button onClick={load} className="btn-outline text-xs flex items-center gap-1.5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          Refresh
+        </button>
       </div>
 
-      {error ? <div className="border border-red-300 bg-red-50 text-red-700 rounded p-3">{error}</div> : null}
+      {error ? <div className="alert-error text-sm">{error}</div> : null}
 
-      <Card>
-        <div className="font-semibold mb-2">Add Item</div>
+      <div className="admin-card p-5">
+        <div className="font-semibold text-stone-800 mb-4">Add Item</div>
         <form onSubmit={createItem} className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <label className="text-sm">
-            <div className="text-gray-600 mb-1">Name</div>
-            <input className="border rounded w-full p-2" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
+            <div className="label">Name</div>
+            <input className="input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
           </label>
           <label className="text-sm">
-            <div className="text-gray-600 mb-1">Category</div>
-            <input className="border rounded w-full p-2" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} required />
+            <div className="label">Category</div>
+            <input className="input" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} required />
           </label>
           <label className="text-sm md:col-span-2">
-            <div className="text-gray-600 mb-1">Description</div>
-            <input className="border rounded w-full p-2" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+            <div className="label">Description</div>
+            <input className="input" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
           </label>
           <label className="text-sm">
-            <div className="text-gray-600 mb-1">Price</div>
-            <input type="number" step="0.01" className="border rounded w-full p-2" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} required />
+            <div className="label">Price</div>
+            <input type="number" step="0.01" className="input" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} required />
           </label>
           <label className="text-sm">
-            <div className="text-gray-600 mb-1">Image URL</div>
-            <input className="border rounded w-full p-2" value={form.imageUrl} onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))} />
+            <div className="label">Image URL</div>
+            <input className="input" value={form.imageUrl} onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))} />
           </label>
           <label className="text-sm">
-            <div className="text-gray-600 mb-1">Upload image</div>
+            <div className="label">Upload image</div>
             <input
               type="file"
               accept="image/*"
-              className="border rounded w-full p-2 text-sm"
+              className="block w-full text-sm text-stone-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer"
               disabled={uploading}
               onChange={(e) => onPickCreateImage(e.target.files?.[0])}
             />
-            <div className="text-xs text-gray-500 mt-1">{uploading ? "Uploading…" : ""}</div>
+            <div className="text-xs text-stone-400 mt-1">{uploading ? "Uploading…" : ""}</div>
           </label>
           <div className="md:col-span-2">
             {form.imageUrl ? (
-              <div className="flex items-center gap-3 border rounded p-2">
-                <img src={form.imageUrl} alt="Preview" className="h-16 w-16 object-cover rounded border" />
+              <div className="flex items-center gap-3 border border-stone-200 rounded-xl p-3">
+                <img src={form.imageUrl} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-stone-200" />
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs text-gray-600">Cover image preview</div>
-                  <a className="underline text-sm truncate block" href={form.imageUrl} target="_blank" rel="noreferrer">
+                  <div className="text-xs text-stone-500">Cover image preview</div>
+                  <a className="text-brand-600 hover:underline text-sm truncate block" href={form.imageUrl} target="_blank" rel="noreferrer">
                     {form.imageUrl}
                   </a>
                 </div>
-                <button type="button" className="px-3 py-2 border rounded text-sm" disabled={uploading} onClick={removeCreateImage}>
+                <button type="button" className="btn-danger text-xs" disabled={uploading} onClick={removeCreateImage}>
                   Remove
                 </button>
               </div>
             ) : (
-              <div className="text-sm text-gray-600">No cover image</div>
+              <div className="text-sm text-stone-400">No cover image</div>
             )}
           </div>
 
           {/* Additional photos */}
           <div className="md:col-span-2">
-            <div className="text-gray-600 text-sm mb-1 font-medium">Gallery Photos (optional — multiple)</div>
+            <div className="label mb-1">Gallery Photos <span className="text-stone-400 font-normal">(optional)</span></div>
             <label className="block">
               <input
                 type="file"
                 accept="image/*"
                 multiple
-                className="border rounded w-full p-2 text-sm"
+                className="block w-full text-sm text-stone-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer"
                 disabled={photosUploading}
                 onChange={e => { Array.from(e.target.files || []).forEach(f => addCreatePhoto(f)); e.target.value = ""; }}
               />
-              {photosUploading && <div className="text-xs text-gray-500 mt-1">Uploading…</div>}
+              {photosUploading && <div className="text-xs text-stone-400 mt-1">Uploading…</div>}
             </label>
             {(form.photos || []).length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {form.photos.map((url, i) => (
                   <div key={i} className="relative group">
-                    <img src={url} alt="" className="w-20 h-16 object-cover rounded border" />
+                    <img src={url} alt="" className="w-20 h-16 object-cover rounded-lg border border-stone-200" />
                     <button
                       type="button"
                       onClick={() => removeCreatePhoto(url)}
@@ -389,22 +398,27 @@ export default function AdminMenu() {
               </div>
             )}
           </div>
-          <label className="text-sm md:col-span-2">
-            <div className="text-gray-600 mb-1">Dietary tags (comma-separated)</div>
-            <input className="border rounded w-full p-2" value={form.dietaryTags} onChange={(e) => setForm((f) => ({ ...f, dietaryTags: e.target.value }))} placeholder="e.g. vegan, gluten-free" />
+          <label className="text-sm flex items-center gap-2 md:col-span-2 cursor-pointer">
+            <input type="checkbox" checked={!!form.isVeg} onChange={(e) => setForm((f) => ({ ...f, isVeg: e.target.checked }))} className="w-4 h-4 accent-green-600" />
+            <span className="font-medium text-green-700">Vegetarian item</span>
+            <span className="text-xs text-stone-400">(leave unchecked for non-veg)</span>
           </label>
           <label className="text-sm md:col-span-2">
-            <div className="text-gray-600 mb-1">Allergens (comma-separated)</div>
-            <input className="border rounded w-full p-2" value={form.allergens} onChange={(e) => setForm((f) => ({ ...f, allergens: e.target.value }))} placeholder="e.g. nuts, dairy" />
+            <div className="label">Dietary tags (comma-separated)</div>
+            <input className="input" value={form.dietaryTags} onChange={(e) => setForm((f) => ({ ...f, dietaryTags: e.target.value }))} placeholder="e.g. vegan, gluten-free" />
+          </label>
+          <label className="text-sm md:col-span-2">
+            <div className="label">Allergens (comma-separated)</div>
+            <input className="input" value={form.allergens} onChange={(e) => setForm((f) => ({ ...f, allergens: e.target.value }))} placeholder="e.g. nuts, dairy" />
           </label>
 
           <div className="md:col-span-2">
-            <div className="text-sm text-gray-600 mb-1">Recipe (ingredients used per 1 item)</div>
+            <div className="label mb-1">Recipe <span className="text-stone-400 font-normal">(ingredients per 1 item)</span></div>
             <div className="grid gap-2">
               {recipeRows.map((row, idx) => (
                 <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_160px_120px] gap-2">
                   <select
-                    className="border rounded w-full p-2 text-sm"
+                    className="input text-sm"
                     value={row.ingredientId}
                     onChange={(e) =>
                       setRecipeRows((rows) =>
@@ -424,7 +438,7 @@ export default function AdminMenu() {
                     type="number"
                     step="0.01"
                     min="0"
-                    className="border rounded w-full p-2 text-sm"
+                    className="input text-sm"
                     value={row.quantity}
                     onChange={(e) =>
                       setRecipeRows((rows) =>
@@ -436,7 +450,7 @@ export default function AdminMenu() {
 
                   <button
                     type="button"
-                    className="px-3 py-2 border rounded text-sm"
+                    className="btn-outline text-xs"
                     onClick={() => setRecipeRows((rows) => rows.filter((_, i) => i !== idx))}
                     disabled={recipeRows.length === 1}
                     title={recipeRows.length === 1 ? "At least one row" : "Remove"}
@@ -449,61 +463,67 @@ export default function AdminMenu() {
               <div>
                 <button
                   type="button"
-                  className="px-3 py-2 border rounded text-sm"
+                  className="btn-outline text-xs"
                   onClick={() => setRecipeRows((rows) => [...rows, { ingredientId: "", quantity: "" }])}
                 >
                   + Add ingredient
                 </button>
               </div>
 
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-stone-400">
                 Stock is automatically reduced when an order is moved to <b>preparing</b> (Admin → Orders).
               </div>
             </div>
           </div>
 
           <div className="md:col-span-2">
-            <button className="px-4 py-2 rounded bg-black text-white" type="submit">Create</button>
+            <button className="btn-primary" type="submit">Create Item</button>
           </div>
         </form>
-      </Card>
+      </div>
 
-      <Card>
-        <div className="font-semibold mb-2">Active Items ({activeItems.length})</div>
+      <div className="admin-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+          <h3 className="font-semibold text-stone-800">Active Items <span className="text-stone-400 font-normal">({activeItems.length})</span></h3>
+        </div>
         {loading ? (
-          <div>Loading...</div>
+          <div className="p-5 space-y-2">{[...Array(4)].map((_, i) => <div key={i} className="skeleton h-10 rounded-lg" />)}</div>
         ) : activeItems.length === 0 ? (
-          <div className="text-gray-600">No items</div>
+          <div className="p-8 text-center text-stone-400">No active items</div>
         ) : (
           <div className="overflow-auto">
-            <table className="min-w-full text-sm">
+            <table className="admin-table">
               <thead>
-                <tr className="text-left border-b">
-                  <th className="py-2 pr-3">Image</th>
-                  <th className="py-2 pr-3">Name</th>
-                  <th className="py-2 pr-3">Category</th>
-                  <th className="py-2 pr-3">Price</th>
-                  <th className="py-2 pr-3">Available</th>
-                  <th className="py-2 pr-3">Actions</th>
+                <tr>
+                  <th className="admin-th">Image</th>
+                  <th className="admin-th">Name</th>
+                  <th className="admin-th">Category</th>
+                  <th className="admin-th">Price</th>
+                  <th className="admin-th">Type</th>
+                  <th className="admin-th">Active</th>
+                  <th className="admin-th">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {activeItems.map((i) => (
-                  <tr key={i._id} className="border-b">
-                    <td className="py-2 pr-3">
-                      {i.imageUrl ? <img src={i.imageUrl} alt={i.name} className="h-10 w-10 object-cover rounded border" /> : <span className="text-gray-500">—</span>}
+                  <tr key={i._id} className="admin-tr">
+                    <td className="admin-td">
+                      {i.imageUrl ? <img src={i.imageUrl} alt={i.name} className="h-10 w-10 object-cover rounded-lg border border-stone-200" /> : <div className="h-10 w-10 rounded-lg bg-stone-100 flex items-center justify-center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 text-stone-300"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18A2.25 2.25 0 0023.25 18V6A2.25 2.25 0 0021 3.75H3A2.25 2.25 0 00.75 6v12A2.25 2.25 0 003 20.25z" /></svg></div>}
                     </td>
-                    <td className="py-2 pr-3">{i.name}</td>
-                    <td className="py-2 pr-3">{i.category}</td>
-                    <td className="py-2 pr-3">${Number(i.price).toFixed(2)}</td>
-                    <td className="py-2 pr-3">{i.isActive ? "Yes" : "No"}</td>
-                    <td className="py-2 pr-3 flex gap-2">
-                      <button className="underline" onClick={() => openEdit(i)}>
-                        Edit
-                      </button>
-                      <button className="underline text-red-700" onClick={() => setConfirmDeactivateId(i._id)}>
-                        Deactivate
-                      </button>
+                    <td className="admin-td font-medium">{i.name}</td>
+                    <td className="admin-td"><span className="badge-info">{i.category}</span></td>
+                    <td className="admin-td font-medium">${Number(i.price).toFixed(2)}</td>
+                    <td className="admin-td">
+                      {i.isVeg
+                        ? <span className="badge-success">Veg</span>
+                        : <span className="badge-danger">Non-Veg</span>}
+                    </td>
+                    <td className="admin-td">{i.isActive ? <span className="badge-success">Yes</span> : <span className="badge-neutral">No</span>}</td>
+                    <td className="admin-td">
+                      <div className="flex gap-2">
+                        <button className="btn-outline text-xs" onClick={() => openEdit(i)}>Edit</button>
+                        <button className="btn-danger text-xs" onClick={() => setConfirmDeactivateId(i._id)}>Deactivate</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -511,33 +531,37 @@ export default function AdminMenu() {
             </table>
           </div>
         )}
-      </Card>
+      </div>
 
-      <Card>
-        <div className="font-semibold mb-2">Inactive Items</div>
+      <div className="admin-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-stone-100">
+          <h3 className="font-semibold text-stone-800">Inactive Items</h3>
+        </div>
         <div className="overflow-auto">
-          <table className="min-w-full text-sm">
+          <table className="admin-table">
             <thead>
-              <tr className="text-left border-b">
-                <th className="py-2 pr-3">Name</th>
-                <th className="py-2 pr-3">Category</th>
-                <th className="py-2 pr-3">Actions</th>
+              <tr>
+                <th className="admin-th">Name</th>
+                <th className="admin-th">Category</th>
+                <th className="admin-th">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {items.filter((i) => i.isActive === false).map((i) => (
-                <tr key={i._id} className="border-b">
-                  <td className="py-2 pr-3">{i.name}</td>
-                  <td className="py-2 pr-3">{i.category}</td>
-                  <td className="py-2 pr-3">
-                    <button className="underline" onClick={() => activate(i._id)}>Activate</button>
+              {items.filter((i) => i.isActive === false).length === 0 ? (
+                <tr><td colSpan="3" className="admin-td text-center text-stone-400">No inactive items</td></tr>
+              ) : items.filter((i) => i.isActive === false).map((i) => (
+                <tr key={i._id} className="admin-tr">
+                  <td className="admin-td font-medium">{i.name}</td>
+                  <td className="admin-td"><span className="badge-info">{i.category}</span></td>
+                  <td className="admin-td">
+                    <button className="btn-outline text-xs" onClick={() => activate(i._id)}>Activate</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       <Modal
         open={editOpen}
@@ -550,10 +574,10 @@ export default function AdminMenu() {
         }}
         footer={
           <div className="flex justify-end gap-2">
-            <button className="px-3 py-2 border rounded" type="button" onClick={() => setEditOpen(false)}>
+            <button className="btn-outline" type="button" onClick={() => setEditOpen(false)}>
               Cancel
             </button>
-            <button className="px-3 py-2 rounded bg-black text-white" type="button" disabled={savingEdit} onClick={saveEdit}>
+            <button className="btn-primary" type="button" disabled={savingEdit} onClick={saveEdit}>
               {savingEdit ? "Saving…" : "Save"}
             </button>
           </div>
@@ -562,75 +586,75 @@ export default function AdminMenu() {
         {editForm ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="text-sm">
-              <div className="text-gray-600 mb-1">Name</div>
-              <input className="border rounded w-full p-2" value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} />
+              <div className="label">Name</div>
+              <input className="input" value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} />
             </label>
             <label className="text-sm">
-              <div className="text-gray-600 mb-1">Category</div>
-              <input className="border rounded w-full p-2" value={editForm.category} onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))} />
+              <div className="label">Category</div>
+              <input className="input" value={editForm.category} onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))} />
             </label>
             <label className="text-sm md:col-span-2">
-              <div className="text-gray-600 mb-1">Description</div>
-              <input className="border rounded w-full p-2" value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} />
+              <div className="label">Description</div>
+              <input className="input" value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} />
             </label>
             <label className="text-sm">
-              <div className="text-gray-600 mb-1">Price</div>
-              <input type="number" step="0.01" className="border rounded w-full p-2" value={editForm.price} onChange={(e) => setEditForm((f) => ({ ...f, price: e.target.value }))} />
+              <div className="label">Price</div>
+              <input type="number" step="0.01" className="input" value={editForm.price} onChange={(e) => setEditForm((f) => ({ ...f, price: e.target.value }))} />
             </label>
             <label className="text-sm">
-              <div className="text-gray-600 mb-1">Active</div>
-              <select className="border rounded w-full p-2" value={editForm.isActive ? "yes" : "no"} onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.value === "yes" }))}>
+              <div className="label">Active</div>
+              <select className="input" value={editForm.isActive ? "yes" : "no"} onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.value === "yes" }))}>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
               </select>
             </label>
             <label className="text-sm md:col-span-2">
-              <div className="text-gray-600 mb-1">Image URL</div>
-              <input className="border rounded w-full p-2" value={editForm.imageUrl} onChange={(e) => setEditForm((f) => ({ ...f, imageUrl: e.target.value }))} />
+              <div className="label">Image URL</div>
+              <input className="input" value={editForm.imageUrl} onChange={(e) => setEditForm((f) => ({ ...f, imageUrl: e.target.value }))} />
             </label>
             <label className="text-sm md:col-span-2">
-              <div className="text-gray-600 mb-1">Upload new image</div>
-              <input type="file" accept="image/*" className="border rounded w-full p-2 text-sm" disabled={editUploading} onChange={(e) => onPickEditImage(e.target.files?.[0])} />
-              <div className="text-xs text-gray-500 mt-1">{editUploading ? "Uploading…" : ""}</div>
+              <div className="label">Upload new image</div>
+              <input type="file" accept="image/*" className="block w-full text-sm text-stone-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer" disabled={editUploading} onChange={(e) => onPickEditImage(e.target.files?.[0])} />
+              <div className="text-xs text-stone-400 mt-1">{editUploading ? "Uploading…" : ""}</div>
             </label>
             <div className="md:col-span-2">
               {editForm.imageUrl ? (
-                <div className="flex items-center gap-3 border rounded p-2">
-                  <img src={editForm.imageUrl} alt="Preview" className="h-16 w-16 object-cover rounded border" />
+                <div className="flex items-center gap-3 border border-stone-200 rounded-xl p-3">
+                  <img src={editForm.imageUrl} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-stone-200" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs text-gray-600">Cover image</div>
-                    <a className="underline text-sm truncate block" href={editForm.imageUrl} target="_blank" rel="noreferrer">
+                    <div className="text-xs text-stone-500">Cover image</div>
+                    <a className="text-brand-600 hover:underline text-sm truncate block" href={editForm.imageUrl} target="_blank" rel="noreferrer">
                       {editForm.imageUrl}
                     </a>
                   </div>
-                  <button type="button" className="px-3 py-2 border rounded text-sm" disabled={editUploading} onClick={removeEditImage}>
+                  <button type="button" className="btn-danger text-xs" disabled={editUploading} onClick={removeEditImage}>
                     Remove
                   </button>
                 </div>
               ) : (
-                <div className="text-sm text-gray-600">No cover image</div>
+                <div className="text-sm text-stone-400">No cover image</div>
               )}
             </div>
 
             {/* Gallery photos in edit */}
             <div className="md:col-span-2">
-              <div className="text-gray-600 text-sm mb-1 font-medium">Gallery Photos (multiple)</div>
+              <div className="label mb-1">Gallery Photos <span className="text-stone-400 font-normal">(multiple)</span></div>
               <label className="block">
                 <input
                   type="file"
                   accept="image/*"
                   multiple
-                  className="border rounded w-full p-2 text-sm"
+                  className="block w-full text-sm text-stone-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer"
                   disabled={editPhotosUploading}
                   onChange={e => { Array.from(e.target.files || []).forEach(f => addEditPhoto(f)); e.target.value = ""; }}
                 />
-                {editPhotosUploading && <div className="text-xs text-gray-500 mt-1">Uploading…</div>}
+                {editPhotosUploading && <div className="text-xs text-stone-400 mt-1">Uploading…</div>}
               </label>
               {(editForm.photos || []).length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {editForm.photos.map((url, i) => (
                     <div key={i} className="relative group">
-                      <img src={url} alt="" className="w-20 h-16 object-cover rounded border" />
+                      <img src={url} alt="" className="w-20 h-16 object-cover rounded-lg border border-stone-200" />
                       <button
                         type="button"
                         onClick={() => removeEditPhoto(url)}
@@ -642,22 +666,27 @@ export default function AdminMenu() {
               )}
             </div>
 
-            <label className="text-sm md:col-span-2">
-              <div className="text-gray-600 mb-1">Dietary tags (comma-separated)</div>
-              <input className="border rounded w-full p-2" value={editForm.dietaryTags} onChange={(e) => setEditForm((f) => ({ ...f, dietaryTags: e.target.value }))} />
+            <label className="text-sm flex items-center gap-2 md:col-span-2 cursor-pointer">
+              <input type="checkbox" checked={!!editForm.isVeg} onChange={(e) => setEditForm((f) => ({ ...f, isVeg: e.target.checked }))} className="w-4 h-4 accent-green-600" />
+              <span className="font-medium text-green-700">Vegetarian item</span>
+              <span className="text-xs text-stone-400">(leave unchecked for non-veg)</span>
             </label>
             <label className="text-sm md:col-span-2">
-              <div className="text-gray-600 mb-1">Allergens (comma-separated)</div>
-              <input className="border rounded w-full p-2" value={editForm.allergens} onChange={(e) => setEditForm((f) => ({ ...f, allergens: e.target.value }))} />
+              <div className="label">Dietary tags (comma-separated)</div>
+              <input className="input" value={editForm.dietaryTags} onChange={(e) => setEditForm((f) => ({ ...f, dietaryTags: e.target.value }))} />
+            </label>
+            <label className="text-sm md:col-span-2">
+              <div className="label">Allergens (comma-separated)</div>
+              <input className="input" value={editForm.allergens} onChange={(e) => setEditForm((f) => ({ ...f, allergens: e.target.value }))} />
             </label>
 
             <div className="md:col-span-2">
-              <div className="text-sm text-gray-600 mb-1">Recipe</div>
+              <div className="label mb-1">Recipe</div>
               <div className="grid gap-2">
                 {editRecipeRows.map((row, idx) => (
                   <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_160px_120px] gap-2">
                     <select
-                      className="border rounded w-full p-2 text-sm"
+                      className="input text-sm"
                       value={row.ingredientId}
                       onChange={(e) =>
                         setEditRecipeRows((rows) => rows.map((r, i) => (i === idx ? { ...r, ingredientId: e.target.value } : r)))
@@ -674,7 +703,7 @@ export default function AdminMenu() {
                       type="number"
                       step="0.01"
                       min="0"
-                      className="border rounded w-full p-2 text-sm"
+                      className="input text-sm"
                       value={row.quantity}
                       onChange={(e) =>
                         setEditRecipeRows((rows) => rows.map((r, i) => (i === idx ? { ...r, quantity: e.target.value } : r)))
@@ -683,7 +712,7 @@ export default function AdminMenu() {
                     />
                     <button
                       type="button"
-                      className="px-3 py-2 border rounded text-sm"
+                      className="btn-outline text-xs"
                       onClick={() => setEditRecipeRows((rows) => rows.filter((_, i) => i !== idx))}
                       disabled={editRecipeRows.length === 1}
                     >
@@ -694,7 +723,7 @@ export default function AdminMenu() {
                 <div>
                   <button
                     type="button"
-                    className="px-3 py-2 border rounded text-sm"
+                    className="btn-outline text-xs"
                     onClick={() => setEditRecipeRows((rows) => [...rows, { ingredientId: "", quantity: "" }])}
                   >
                     + Add ingredient

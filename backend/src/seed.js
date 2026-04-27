@@ -20,7 +20,7 @@ async function run() {
     TextileInventory.deleteMany({})
   ]);
 
-  const adminPass = await bcrypt.hash("Admin@123", 10);
+  const adminPass = await bcrypt.hash("admin123", 10);
   const staffPass = await bcrypt.hash("Staff@123", 10);
   const custPass = await bcrypt.hash("Customer@123", 10);
 
@@ -78,7 +78,7 @@ async function run() {
 
   console.log("✅ Seeded demo data");
   console.log("Logins:");
-  console.log("admin@demo.com / Admin@123");
+  console.log("admin@demo.com / admin123");
   console.log("staff@demo.com / Staff@123");
   console.log("customer@demo.com / Customer@123");
 

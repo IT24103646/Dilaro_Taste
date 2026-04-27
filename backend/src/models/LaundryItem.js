@@ -5,6 +5,8 @@ const laundryItemSchema = new mongoose.Schema(
     type: { type: String, enum: ["linens", "towels", "uniforms"], required: true },
     quantity: { type: Number, required: true, min: 1 },
     status: { type: String, enum: ["soiled", "queued", "in-progress", "cleaned", "ready"], default: "soiled" },
+    customerName: { type: String, default: "" },
+    customerPhone: { type: String, default: "" },
     assignedTo: { type: String, default: "" }, // internal team or vendor
     dueAt: { type: Date },
     charges: {

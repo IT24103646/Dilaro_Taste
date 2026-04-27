@@ -21,7 +21,7 @@ export default function RoomDetail() {
   const [guest, setGuest] = useState({ name: "", email: "", phone: "" });
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
-  const [purpose, setPurpose] = useState("");
+  const [paymentOption, setPaymentOption] = useState("later");
   const [msg, setMsg] = useState({ text: "", ok: true });
   const [reserving, setReserving] = useState(false);
 
@@ -39,14 +39,28 @@ export default function RoomDetail() {
     setReserving(true);
     try {
       const { data } = await api.post("/api/reservations", {
-        roomId: id, startAt, endAt, purpose, guest, paymentRequired: false,
+        roomId: id,
+        startAt,
+        endAt,
+        guest,
+        paymentRequired: paymentOption === "stripe",
       });
-      setMsg({
-        text: data.waitlisted
-          ? `✅ Waitlisted! Reference: ${data.reservation.referenceNo}`
-          : `✅ Reserved! Reference: ${data.reservation.referenceNo}`,
-        ok: true,
-      });
+
+      if (data.waitlisted) {
+        setMsg({ text: `✅ Waitlisted! Reference: ${data.reservation.referenceNo}`, ok: true });
+        return;
+      }
+
+      if (paymentOption === "stripe") {
+        setMsg({ text: "Redirecting to secure payment portal...", ok: true });
+        const session = await api.post("/api/payments/checkout", { kind: "reservation", id: data.reservation._id });
+        const url = session?.data?.url;
+        if (!url) throw new Error("Payment session did not return a redirect URL");
+        window.location.href = url;
+        return;
+      }
+
+      setMsg({ text: `✅ Reserved! Reference: ${data.reservation.referenceNo}`, ok: true });
     } catch (err) {
       setMsg({ text: err.response?.data?.error || "Reservation failed. Please try again.", ok: false });
     } finally {
@@ -188,10 +202,6 @@ export default function RoomDetail() {
               <label className="text-xs font-medium text-stone-600 block mb-1">Check-out</label>
               <input className="input text-sm" type="datetime-local" value={endAt} onChange={e => setEndAt(e.target.value)} required />
             </div>
-            <div>
-              <label className="text-xs font-medium text-stone-600 block mb-1">Purpose</label>
-              <input className="input text-sm" placeholder="Meeting, stay, event…" value={purpose} onChange={e => setPurpose(e.target.value)} />
-            </div>
             <div className="border-t border-stone-100 pt-3 space-y-2">
               <label className="text-xs font-medium text-stone-600 block">Your Details</label>
               <input className="input text-sm" placeholder="Full name" value={guest.name} onChange={e => setGuest({ ...guest, name: e.target.value })} required />
@@ -199,8 +209,20 @@ export default function RoomDetail() {
               <input className="input text-sm" placeholder="Phone" value={guest.phone} onChange={e => setGuest({ ...guest, phone: e.target.value })} />
             </div>
 
+            <div>
+              <label className="text-xs font-medium text-stone-600 block mb-1">Payment</label>
+              <select className="input text-sm" value={paymentOption} onChange={(e) => setPaymentOption(e.target.value)}>
+                <option value="later">Pay later (cash/card)</option>
+                <option value="stripe">Pay now (Stripe)</option>
+              </select>
+            </div>
+
             <button type="submit" disabled={reserving || room.status !== "Available"} className="btn-primary w-full py-2.5 rounded-xl">
-              {reserving ? "Reserving…" : room.status !== "Available" ? "Not Available" : "Confirm Reservation"}
+              {reserving
+                ? (paymentOption === "stripe" ? "Starting payment…" : "Reserving…")
+                : room.status !== "Available"
+                  ? "Not Available"
+                  : (paymentOption === "stripe" ? "Pay with Stripe" : "Confirm Reservation")}
             </button>
 
             {msg.text && (

@@ -50,8 +50,10 @@ router.post("/", protect, requireRole("staff", "admin"), async (req, res, next) 
     const schema = z.object({
       type: z.enum(["linens", "towels", "uniforms"]),
       quantity: z.number().int().min(1),
+      customerName: z.string().optional().default(""),
+      customerPhone: z.string().optional().default(""),
       assignedTo: z.string().optional().default(""),
-      dueAt: z.string().datetime().optional(),
+      dueAt: z.string().optional(),
       charges: z.object({
         express: z.number().optional(),
         replacement: z.number().optional(),

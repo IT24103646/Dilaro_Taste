@@ -13,7 +13,8 @@ import orderRoutes from "./routes/order.routes.js";
 import roomRoutes from "./routes/room.routes.js";
 import reservationRoutes from "./routes/reservation.routes.js";
 import laundryRoutes from "./routes/laundry.routes.js";
-import paymentRoutes from "./routes/payment.routes.js";
+import paymentRoutes, { stripeWebhookHandler } from "./routes/payment.routes.js";
+import packageRoutes from "./routes/package.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
@@ -31,6 +32,11 @@ export function createApp() {
   // Security + basics
   app.use(helmet());
   app.use(morgan("dev"));
+
+  // Stripe requires the raw request body for webhook signature verification.
+  // This MUST be registered before express.json().
+  app.post("/api/payments/webhook", express.raw({ type: "application/json" }), stripeWebhookHandler);
+
   app.use(express.json({ limit: "2mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
@@ -78,6 +84,7 @@ export function createApp() {
   app.use("/api/reservations", reservationRoutes);
   app.use("/api/laundry", laundryRoutes);
   app.use("/api/payments", paymentRoutes);
+  app.use("/api/packages", packageRoutes);
   app.use("/api/reports", reportRoutes);
   app.use("/api/contact", contactRoutes);
   app.use("/api/hero", heroRoutes);

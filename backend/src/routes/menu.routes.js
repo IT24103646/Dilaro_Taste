@@ -73,6 +73,7 @@ router.post("/", protect, requireRole("admin"), async (req, res, next) => {
       imageUrl: z.string().optional().default(""),
       photos: z.array(z.string()).optional().default([]),
       isActive: z.boolean().optional().default(true),
+      isVeg: z.boolean().optional().default(false),
       dietaryTags: z.array(z.string()).optional().default([]),
       allergens: z.array(z.string()).optional().default([]),
       availability: z.object({

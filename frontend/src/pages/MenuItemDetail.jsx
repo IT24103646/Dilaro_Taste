@@ -122,7 +122,13 @@ export default function MenuItemDetail() {
         {/* Details */}
         <div className="space-y-5">
           <div>
-            <div className="section-label mb-1">{item.category}</div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="section-label">{item.category}</div>
+              {item.isVeg
+                ? <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-green-50 text-green-700 border border-green-400 rounded px-1.5 py-0.5"><span className="w-2.5 h-2.5 rounded-sm border-2 border-green-600 flex items-center justify-center flex-shrink-0"><span className="w-1.5 h-1.5 rounded-full bg-green-600 block"/></span>VEG</span>
+                : <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-red-50 text-red-700 border border-red-400 rounded px-1.5 py-0.5"><span className="w-2.5 h-2.5 rounded-sm border-2 border-red-600 flex items-center justify-center flex-shrink-0"><span className="w-1.5 h-1.5 rounded-full bg-red-600 block"/></span>NON-VEG</span>
+              }
+            </div>
             <h1 className="font-display text-3xl font-semibold text-stone-900 leading-tight">{item.name}</h1>
             <div className="mt-3 text-2xl font-bold text-stone-900">${Number(item.price).toFixed(2)}</div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api.js";
+import HeroCarousel from "../components/HeroCarousel.jsx";
 
 export default function Rooms() {
   const [rooms, setRooms] = useState([]);
@@ -8,7 +9,7 @@ export default function Rooms() {
   const [roomId, setRoomId] = useState("");
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
-  const [purpose, setPurpose] = useState("");
+  const [paymentOption, setPaymentOption] = useState("later");
   const [msg, setMsg] = useState({ text: "", ok: true });
   const [loading, setLoading] = useState(false);
   const [photoIndex, setPhotoIndex] = useState({});
@@ -24,10 +25,20 @@ export default function Rooms() {
     setMsg({ text: "", ok: true });
     setLoading(true);
     try {
-      const payload = { roomId, startAt, endAt, purpose, guest, paymentRequired: false };
+      const payload = { roomId, startAt, endAt, guest, paymentRequired: paymentOption === "stripe" };
       const { data } = await api.post("/api/reservations", payload);
       if (data.waitlisted) setMsg({ text: `✅ Waitlisted! Reference: ${data.reservation.referenceNo}`, ok: true });
-      else setMsg({ text: `✅ Reserved! Reference: ${data.reservation.referenceNo}`, ok: true });
+      else {
+        if (paymentOption === "stripe") {
+          setMsg({ text: "Redirecting to secure payment portal...", ok: true });
+          const session = await api.post("/api/payments/checkout", { kind: "reservation", id: data.reservation._id });
+          const url = session?.data?.url;
+          if (!url) throw new Error("Payment session did not return a redirect URL");
+          window.location.href = url;
+          return;
+        }
+        setMsg({ text: `✅ Reserved! Reference: ${data.reservation.referenceNo}`, ok: true });
+      }
     } catch (err) {
       setMsg({ text: err.response?.data?.error || "Reservation failed. Please try again.", ok: false });
     } finally {
@@ -37,12 +48,14 @@ export default function Rooms() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <div className="section-label mb-1">Accommodation</div>
-        <h1 className="font-display text-3xl font-semibold text-stone-900">Find the right space</h1>
-        <p className="text-stone-500 mt-1 text-sm">Browse our available rooms and make a reservation in minutes.</p>
-      </div>
+      <HeroCarousel
+        className="mb-8"
+        eyebrow="Accommodation"
+        title="Find the right space"
+        subtitle="Browse available rooms and reserve in minutes."
+        primaryAction={{ to: "/track", label: "Track Reservation" }}
+        secondaryAction={{ to: "/contact", label: "Need Assistance?" }}
+      />
 
       {/* Room cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -159,10 +172,6 @@ export default function Rooms() {
               <label className="text-xs font-medium text-stone-600 block mb-1">Check-out</label>
               <input className="input text-sm" type="datetime-local" value={endAt} onChange={e => setEndAt(e.target.value)} />
             </div>
-            <div>
-              <label className="text-xs font-medium text-stone-600 block mb-1">Purpose</label>
-              <input className="input text-sm" value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="Meeting, stay, event…" />
-            </div>
           </div>
 
           <div className="space-y-3">
@@ -177,8 +186,16 @@ export default function Rooms() {
               <input className="input text-sm" placeholder="Phone" value={guest.phone} onChange={e => setGuest({ ...guest, phone: e.target.value })} />
             </div>
 
+            <div>
+              <label className="text-xs font-medium text-stone-600 block mb-1">Payment</label>
+              <select className="input text-sm" value={paymentOption} onChange={(e) => setPaymentOption(e.target.value)}>
+                <option value="later">Pay later (cash/card)</option>
+                <option value="stripe">Pay now (Stripe)</option>
+              </select>
+            </div>
+
             <button onClick={reserve} disabled={loading} className="btn-primary w-full py-2.5 text-sm rounded-xl mt-4">
-              {loading ? "Reserving…" : "Confirm Reservation"}
+              {loading ? (paymentOption === "stripe" ? "Starting payment…" : "Reserving…") : (paymentOption === "stripe" ? "Pay with Stripe" : "Confirm Reservation")}
             </button>
 
             {msg.text && (

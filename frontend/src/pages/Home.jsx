@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { useCart } from "../lib/cart.jsx";
+import HeroCarousel from "../components/HeroCarousel.jsx";
 
 const features = [
   {
@@ -30,15 +31,10 @@ const stats = [
 
 export default function Home() {
   const { addToCart } = useCart();
-  const [slides, setSlides] = useState([]);
-  const [current, setCurrent] = useState(0);
   const [popular, setPopular] = useState([]);
   const [addedId, setAddedId] = useState(null);
 
   useEffect(() => {
-    api.get("/api/hero")
-      .then(({ data }) => { if (data.length) setSlides(data); })
-      .catch(() => {});
     api.get("/api/menu/popular?limit=6")
       .then(({ data }) => setPopular(data.items || []))
       .catch(() => {});
@@ -51,107 +47,17 @@ export default function Home() {
     setTimeout(() => setAddedId(null), 1400);
   }
 
-  // Auto-advance every 5 s
-  useEffect(() => {
-    if (slides.length < 2) return;
-    const t = setInterval(() => setCurrent(c => (c + 1) % slides.length), 5000);
-    return () => clearInterval(t);
-  }, [slides.length]);
-
-  const prev = useCallback(() => setCurrent(c => (c - 1 + slides.length) % slides.length), [slides.length]);
-  const next = useCallback(() => setCurrent(c => (c + 1) % slides.length), [slides.length]);
-
-  const hasSlides = slides.length > 0;
-
   return (
     <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl text-white mb-8 mt-2 min-h-[340px] md:min-h-[420px] bg-hero-pattern">
-        {/* Carousel images */}
-        {hasSlides && slides.map((slide, i) => (
-          <div
-            key={slide._id}
-            className={`absolute inset-0 transition-opacity duration-700 ${i === current ? "opacity-100 z-0" : "opacity-0 z-0"}`}
-          >
-            <img
-              src={slide.imageUrl}
-              alt={slide.title || `slide ${i + 1}`}
-              className="w-full h-full object-cover"
-            />
-            {/* Dark overlay so text is always readable */}
-            <div className="absolute inset-0 bg-stone-950/55" />
-          </div>
-        ))}
-
-        {/* Default dark gradient when no slides */}
-        {!hasSlides && (
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,#d4891a,transparent)]" />
-        )}
-
-        {/* Content */}
-        <div className="relative z-10 px-8 py-20 md:py-28 max-w-3xl">
-          {hasSlides && slides[current]?.title ? (
-            <>
-              <div className="section-label text-brand-400 mb-4">Welcome to Restaurant</div>
-              <h1 className="font-display text-4xl md:text-5xl font-bold leading-tight text-white">
-                {slides[current].title}
-              </h1>
-              {slides[current].subtitle && (
-                <p className="mt-4 text-stone-200 text-lg leading-relaxed max-w-lg">{slides[current].subtitle}</p>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="section-label text-brand-400 mb-4">Welcome to Restaurant</div>
-              <h1 className="font-display text-4xl md:text-5xl font-bold leading-tight text-white">
-                Dine Well.<br />Stay Comfortable.<br />
-                <span className="text-brand-400">Live Simply.</span>
-              </h1>
-              <p className="mt-6 text-stone-300 text-lg leading-relaxed max-w-lg">
-                Order food from our curated menu, book a room, and track everything in real time — all from one place.
-              </p>
-            </>
-          )}
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/menu" className="btn-brand text-base px-7 py-3 rounded-xl">Explore Menu</Link>
-            <Link to="/rooms" className="inline-flex items-center gap-2 px-7 py-3 rounded-xl border border-white/30 text-white text-base font-medium hover:bg-white/10 transition-colors">
-              Reserve a Room
-            </Link>
-          </div>
-        </div>
-
-        {/* Carousel controls — only shown when 2+ slides */}
-        {slides.length > 1 && (
-          <>
-            <button
-              onClick={prev}
-              aria-label="Previous slide"
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
-            >
-              &#8592;
-            </button>
-            <button
-              onClick={next}
-              aria-label="Next slide"
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
-            >
-              &#8594;
-            </button>
-
-            {/* Dot indicators */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrent(i)}
-                  aria-label={`Go to slide ${i + 1}`}
-                  className={`w-2 h-2 rounded-full transition-all ${i === current ? "bg-white w-5" : "bg-white/50 hover:bg-white/80"}`}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </section>
+      <HeroCarousel
+        className="mb-8"
+        eyebrow="Welcome to Restaurant"
+        title="Dine Well. Stay Comfortable. Live Simply."
+        subtitle="Order food from our curated menu, book a room, and track everything in real time from one place."
+        primaryAction={{ to: "/menu", label: "Explore Menu" }}
+        secondaryAction={{ to: "/rooms", label: "Reserve a Room" }}
+        preferSlideText={true}
+      />
 
       {/* Stats */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
