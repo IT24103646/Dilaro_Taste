@@ -17,7 +17,10 @@ const menuItemSchema = new mongoose.Schema(
     price: { type: Number, required: true, min: 0 },
     category: { type: String, required: true, trim: true },
     imageUrl: { type: String, default: "" },
+    photos: [{ type: String }],          // additional gallery images
+    orderCount: { type: Number, default: 0 }, // auto-incremented on each order
     isActive: { type: Boolean, default: true },
+    isVeg: { type: Boolean, default: false },
     dietaryTags: [{ type: String }],  // vegan, halal, etc.
     allergens: [{ type: String }],    // peanuts, dairy...
     availability: { type: availabilitySchema, default: () => ({}) },

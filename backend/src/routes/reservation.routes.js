@@ -1,9 +1,8 @@
 import express from "express";
 import { z } from "zod";
-import mongoose from "mongoose";
 import { Reservation } from "../models/Reservation.js";
 import { Room } from "../models/Room.js";
-import { protect, requireRole } from "../middleware/auth.js";
+import { optionalProtect, protect, requireRole } from "../middleware/auth.js";
 import { emitEvent } from "../socket.js";
 import { sendEmail } from "../utils/email.js";
 
@@ -53,13 +52,12 @@ router.get("/availability", async (req, res, next) => {
 });
 
 // Create reservation (guest allowed)
-router.post("/", async (req, res, next) => {
-  const session = await mongoose.startSession();
+router.post("/", optionalProtect, async (req, res, next) => {
   try {
     const schema = z.object({
       roomId: z.string(),
-      startAt: z.string().datetime(),
-      endAt: z.string().datetime(),
+      startAt: z.string(),
+      endAt: z.string(),
       purpose: z.string().optional().default(""),
       guest: z.object({
         name: z.string().optional().default(""),
@@ -77,9 +75,7 @@ router.post("/", async (req, res, next) => {
       throw new Error("endAt must be after startAt");
     }
 
-    session.startTransaction();
-
-    const room = await Room.findById(data.roomId).session(session);
+    const room = await Room.findById(data.roomId);
     if (!room) {
       res.status(404);
       throw new Error("Room not found");
@@ -89,38 +85,40 @@ router.post("/", async (req, res, next) => {
       throw new Error("Room unavailable due to maintenance/out-of-service");
     }
 
-    // Prevent double-booking (atomic-ish with query)
+    // Prevent double-booking
     const clash = await Reservation.findOne({
       room: room._id,
       status: { $in: ["confirmed", "pending_payment"] },
       startAt: { $lt: endAt },
       endAt: { $gt: startAt }
-    }).session(session);
+    });
 
     const referenceNo = makeRef();
     const status = data.paymentRequired ? "pending_payment" : "confirmed";
+    const paymentProvider = data.paymentRequired ? "stripe" : "cash";
 
     if (clash) {
       // create waitlist entry
-      const wait = await Reservation.create([{
+      const wait = await Reservation.create({
+        customer: req.user?._id,
         room: room._id,
         startAt, endAt,
         purpose: data.purpose,
         status: "waitlisted",
         referenceNo,
         guest: data.guest || {},
-        payment: { status: "unpaid", amount: 0 }
-      }], { session });
+        payment: { status: "unpaid", amount: 0, provider: paymentProvider }
+      });
 
-      await session.commitTransaction();
-      res.status(202).json({ reservation: wait[0], waitlisted: true });
+      res.status(202).json({ reservation: wait, waitlisted: true });
       return;
     }
 
     const hours = Math.ceil((endAt - startAt) / (1000 * 60 * 60));
     const amount = hours * (room.basePricePerHour || 0);
 
-    const reservation = await Reservation.create([{
+    const reservation = await Reservation.create({
+      customer: req.user?._id,
       room: room._id,
       startAt,
       endAt,
@@ -128,12 +126,10 @@ router.post("/", async (req, res, next) => {
       status,
       referenceNo,
       guest: data.guest || {},
-      payment: { status: "unpaid", amount }
-    }], { session });
+      payment: { status: "unpaid", amount, provider: paymentProvider }
+    });
 
-    await session.commitTransaction();
-
-    emitEvent("reservations", "reservation:new", reservation[0]);
+    emitEvent("reservations", "reservation:new", reservation);
 
     const to = data.guest?.email;
     if (to) {
@@ -144,12 +140,9 @@ router.post("/", async (req, res, next) => {
       }).catch(()=>{});
     }
 
-    res.status(201).json({ reservation: reservation[0] });
+    res.status(201).json({ reservation });
   } catch (e) {
-    try { await session.abortTransaction(); } catch {}
     next(e);
-  } finally {
-    session.endSession();
   }
 });
 

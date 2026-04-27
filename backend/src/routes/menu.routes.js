@@ -28,11 +28,36 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-// Admin/staff list all (including inactive)
+// Public: popular items sorted by orderCount — must be BEFORE /:id
+router.get("/popular", async (req, res, next) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 6, 20);
+    const items = await MenuItem.find({ isActive: true })
+      .sort({ orderCount: -1 })
+      .limit(limit)
+      .lean();
+    res.json({ items });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Admin/staff list all (including inactive) — must be BEFORE /:id
 router.get("/all", protect, requireRole("staff", "admin"), async (req, res, next) => {
   try {
     const items = await MenuItem.find().sort({ createdAt: -1 });
     res.json({ items });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Public: get single item by id — must come AFTER static routes
+router.get("/:id", async (req, res, next) => {
+  try {
+    const item = await MenuItem.findById(req.params.id).lean();
+    if (!item) { res.status(404); throw new Error("Menu item not found"); }
+    res.json({ item });
   } catch (e) {
     next(e);
   }
@@ -46,7 +71,9 @@ router.post("/", protect, requireRole("admin"), async (req, res, next) => {
       price: z.number().min(0),
       category: z.string().min(1),
       imageUrl: z.string().optional().default(""),
+      photos: z.array(z.string()).optional().default([]),
       isActive: z.boolean().optional().default(true),
+      isVeg: z.boolean().optional().default(false),
       dietaryTags: z.array(z.string()).optional().default([]),
       allergens: z.array(z.string()).optional().default([]),
       availability: z.object({

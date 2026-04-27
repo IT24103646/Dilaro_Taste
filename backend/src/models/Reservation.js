@@ -17,7 +17,11 @@ const reservationSchema = new mongoose.Schema(
     payment: {
       status: { type: String, enum: ["unpaid", "paid", "failed", "refunded"], default: "unpaid" },
       provider: { type: String, default: "stripe" },
-      amount: { type: Number, default: 0 }
+      amount: { type: Number, default: 0 },
+      currency: { type: String, default: "usd" },
+      stripeSessionId: { type: String, default: "" },
+      stripePaymentIntentId: { type: String, default: "" },
+      paidAt: { type: Date },
     },
     reminderSentAt: { type: Date },
     audit: [

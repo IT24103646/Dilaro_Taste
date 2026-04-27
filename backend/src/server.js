@@ -1,12 +1,32 @@
 import http from "http";
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config";
+
+import bcrypt from "bcryptjs";
 
 import { connectDB, disconnectDB } from "./config/db.js";
 import { createApp } from "./app.js";
 import { initSocket } from "./socket.js";
+import { User } from "./models/User.js";
+
+async function ensureDefaultAdmin() {
+  const existingAdmin = await User.findOne({ role: "admin" }).select("_id").lean();
+  if (existingAdmin) return;
+
+  const email = String(process.env.DEFAULT_ADMIN_EMAIL || "admin@demo.com").trim().toLowerCase();
+  const password = String(process.env.DEFAULT_ADMIN_PASSWORD || "admin123");
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  await User.create({ name: "Admin", email, role: "admin", passwordHash });
+
+  if ((process.env.NODE_ENV || "development") !== "production") {
+    console.log(`ℹ️  Created default admin: ${email} / ${password}`);
+  } else {
+    console.log(`ℹ️  Created default admin: ${email}`);
+  }
+}
 
 await connectDB();
+await ensureDefaultAdmin();
 
 const app = createApp();
 const server = http.createServer(app);
