@@ -19,6 +19,7 @@ import reportRoutes from "./routes/report.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import heroRoutes from "./routes/hero.routes.js";
+import { connectDB } from "./config/db.js";
 
 export function createApp() {
   const app = express();
@@ -97,4 +98,22 @@ export function createApp() {
   app.use(errorHandler);
 
   return app;
+}
+
+const _app = createApp();
+
+let _dbPromise;
+async function ensureDbConnected() {
+  if (!_dbPromise) {
+    _dbPromise = connectDB().catch((err) => {
+      _dbPromise = undefined;
+      throw err;
+    });
+  }
+  return _dbPromise;
+}
+
+export default async function handler(req, res) {
+  await ensureDbConnected();
+  return _app(req, res);
 }
