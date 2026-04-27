@@ -108,10 +108,6 @@ function validateDiscount({ price, discountType, discountValue }) {
     if (value > p) throw badRequest("Fixed discount cannot be greater than Price");
   }
 }
- if (type === "fixed") {
-    if (value > p) throw badRequest("Fixed discount cannot be greater than Price");
-  }
-}
 
 function toClient(doc) {
   const p = doc?.toObject ? doc.toObject() : doc;

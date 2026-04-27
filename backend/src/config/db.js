@@ -8,6 +8,12 @@ function isTruthyEnv(value) {
 }
 
 export async function connectDB() {
+  // In serverless environments (e.g. Vercel), modules can be re-used between
+  // invocations. Avoid creating new connections when one is already open.
+  if (mongoose.connection?.readyState === 1) {
+    return;
+  }
+
   let uri = process.env.MONGO_URI;
   const useInMemory = isTruthyEnv(process.env.USE_IN_MEMORY_DB);
 
@@ -33,7 +39,7 @@ export async function connectDB() {
     console.log("✅ MongoDB connected");
   } catch (err) {
     console.error("❌ MongoDB connection error:", err.message);
-    process.exit(1);
+    throw err;
   }
 }
 
